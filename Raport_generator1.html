@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="sq">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRentals - Gjenerues Raportesh</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-900 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-car-side text-2xl mr-3"></i>
+                    <span class="font-bold text-xl tracking-tight">MRentals Manager</span>
+                </div>
+                <div class="text-sm opacity-80">Gjenerues i Raporteve Mujore</div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Header Controls -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2"><i
+                    class="fa-solid fa-sliders mr-2"></i>Detajet e Raportit</h2>
+            <div class="grid grid-cols-1 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Muaji & Viti</label>
+                    <input type="text" id="reportDate"
+                        class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        placeholder="p.sh. Janar 2026" value="Janar 2026">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- INCOME SECTION -->
+            <div class="space-y-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="text-lg font-bold text-green-700"><i class="fa-solid fa-money-bill-wave mr-2"></i>Të
+                            Ardhurat</h3>
+                        <span
+                            class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Hyrje</span>
+                    </div>
+
+                    <!-- Income Form -->
+                    <div class="grid grid-cols-2 gap-3 mb-4 bg-gray-50 p-4 rounded-lg">
+                        <input type="date" id="incDate" title="Data e të Ardhurave"
+                            class="p-2 border rounded text-sm w-full">
+                        <input type="text" id="incCar" placeholder="Makina" title="Makina"
+                            class="p-2 border rounded text-sm w-full">
+                        <input type="text" id="incPeriod" placeholder="Periudha (psh 3 Dite)" title="Periudha e qiraje"
+                            class="p-2 border rounded text-sm w-full">
+                        <input type="number" id="incAmount" placeholder="Shuma (€)" title="Shuma në euro"
+                            class="p-2 border rounded text-sm w-full">
+                        <button onclick="addIncome()"
+                            class="col-span-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition">
+                            <i class="fa-solid fa-plus mr-1"></i> Shto të Ardhura
+                        </button>
+                    </div>
+
+                    <!-- Income Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-2 py-2">Data</th>
+                                    <th class="px-2 py-2">Makina</th>
+                                    <th class="px-2 py-2">Periudha</th>
+                                    <th class="px-2 py-2 text-right">€</th>
+                                    <th class="px-2 py-2"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="incomeTableBody">
+                                <!-- JS renders rows here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 text-right">
+                        <span class="text-gray-600">Total Të Ardhurat: </span>
+                        <span class="text-xl font-bold text-green-600" id="totalIncomeDisplay">0.00 €</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EXPENSES SECTION -->
+            <div class="space-y-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="text-lg font-bold text-red-700"><i class="fa-solid fa-wrench mr-2"></i>Shpenzimet
+                        </h3>
+                        <span class="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">Dalje</span>
+                    </div>
+
+                    <!-- Expense Form -->
+                    <div class="grid grid-cols-2 gap-3 mb-4 bg-gray-50 p-4 rounded-lg">
+                        <input type="date" id="expDate" title="Data e shpenzimit"
+                            class="p-2 border rounded text-sm w-full">
+                        <select id="expCategory" title="Kategoria e shpenzimit"
+                            class="p-2 border rounded text-sm w-full">
+                            <option value="Servis">Servis</option>
+                            <option value="Karburant">Karburant</option>
+                            <option value="Larje">Larje</option>
+                            <option value="Pjesë">Pjesë Këmbimi</option>
+                            <option value="Tjetër">Tjetër</option>
+                        </select>
+                        <input type="text" id="expDesc" placeholder="Përshkrimi" title="Përshkrimi i shpenzimit"
+                            class="p-2 border rounded text-sm w-full">
+                        <input type="text" id="expCar" placeholder="Makina" title="Makina"
+                            class="p-2 border rounded text-sm w-full">
+                        <input type="number" id="expAmount" placeholder="Shuma (€)" title="Shuma në euro"
+                            class="p-2 border rounded text-sm w-full col-span-2">
+                        <button onclick="addExpense()"
+                            class="col-span-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition">
+                            <i class="fa-solid fa-plus mr-1"></i> Shto Shpenzim
+                        </button>
+                    </div>
+
+                    <!-- Expense Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-2 py-2">Data</th>
+                                    <th class="px-2 py-2">Kategoria</th>
+                                    <th class="px-2 py-2">Makina</th>
+                                    <th class="px-2 py-2 text-right">€</th>
+                                    <th class="px-2 py-2"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenseTableBody">
+                                <!-- JS renders rows here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 text-right">
+                        <span class="text-gray-600">Total Shpenzimet: </span>
+                        <span class="text-xl font-bold text-red-600" id="totalExpenseDisplay">0.00 €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUMMARY & ACTION -->
+        <div
+            class="mt-8 bg-blue-900 rounded-xl shadow-lg p-6 text-white flex flex-col md:flex-row justify-between items-center">
+            <div class="mb-4 md:mb-0 text-center md:text-left">
+                <h4 class="text-2xl font-bold">Fitimi Neto: <span id="netProfitDisplay">0.00 €</span></h4>
+                <p class="text-blue-200 text-sm">Llogaritur automatikisht (Të Ardhurat - Shpenzimet)</p>
+            </div>
+            <button onclick="generatePDF()"
+                class="bg-white text-blue-900 hover:bg-blue-50 font-bold py-3 px-8 rounded-lg shadow-md transition transform hover:scale-105 flex items-center">
+                <i class="fa-solid fa-file-pdf mr-2 text-xl"></i> Shkarko Raportin PDF
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-12 text-center text-gray-400 text-sm">
+            <p>&copy; 2026 MRentals Management System</p>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA STORAGE ---
+        let incomes = [];
+        let expenses = [];
+
+        // Initialize with default date
+        setTimeout(() => {
+            document.getElementById('incDate').valueAsDate = new Date();
+            document.getElementById('expDate').valueAsDate = new Date();
+        }, 100);
+
+        // --- FUNCTIONS ---
+
+        function formatMoney(amount) {
+            return parseFloat(amount).toFixed(2) + ' €';
+        }
+
+        function updateTotals() {
+            const totalInc = incomes.reduce((sum, item) => sum + item.amount, 0);
+            const totalExp = expenses.reduce((sum, item) => sum + item.amount, 0);
+            const net = totalInc - totalExp;
+
+            document.getElementById('totalIncomeDisplay').innerText = formatMoney(totalInc);
+            document.getElementById('totalExpenseDisplay').innerText = formatMoney(totalExp);
+
+            const netDisplay = document.getElementById('netProfitDisplay');
+            netDisplay.innerText = formatMoney(net);
+
+            // Visual feedback for positive/negative profit
+            if (net >= 0) {
+                netDisplay.classList.remove('text-red-300');
+                netDisplay.classList.add('text-green-300');
+            } else {
+                netDisplay.classList.remove('text-green-300');
+                netDisplay.classList.add('text-red-300');
+            }
+        }
+
+        function renderTables() {
+            // Render Income
+            const incBody = document.getElementById('incomeTableBody');
+            incBody.innerHTML = '';
+            incomes.forEach((inc, index) => {
+                const row = `
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        <td class="px-2 py-2">${inc.date}</td>
+                        <td class="px-2 py-2">${inc.car}</td>
+                        <td class="px-2 py-2">${inc.period}</td>
+                        <td class="px-2 py-2 text-right font-bold text-green-600">${inc.amount}</td>
+                        <td class="px-2 py-2 text-right">
+                            <button onclick="removeIncome(${index})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+                incBody.innerHTML += row;
+            });
+
+            // Render Expenses
+            const expBody = document.getElementById('expenseTableBody');
+            expBody.innerHTML = '';
+            expenses.forEach((exp, index) => {
+                const row = `
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        <td class="px-2 py-2">${exp.date}</td>
+                        <td class="px-2 py-2 font-medium text-gray-900">${exp.category}</td>
+                        <td class="px-2 py-2">${exp.car}</td>
+                        <td class="px-2 py-2 text-right font-bold text-red-600">${exp.amount}</td>
+                        <td class="px-2 py-2 text-right">
+                            <button onclick="removeExpense(${index})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+                expBody.innerHTML += row;
+            });
+
+            updateTotals();
+        }
+
+        function addIncome() {
+            const date = document.getElementById('incDate').value;
+            const car = document.getElementById('incCar').value;
+            const period = document.getElementById('incPeriod').value;
+            const amount = parseFloat(document.getElementById('incAmount').value);
+
+            if (!date || !car || isNaN(amount)) {
+                alert("Ju lutem plotësoni të gjitha fushat e detyrueshme!");
+                return;
+            }
+
+            incomes.push({ date, car, period, amount });
+
+            // Clear inputs
+            document.getElementById('incCar').value = '';
+            document.getElementById('incAmount').value = '';
+            document.getElementById('incPeriod').value = '';
+
+            renderTables();
+        }
+
+        function addExpense() {
+            const date = document.getElementById('expDate').value;
+            const category = document.getElementById('expCategory').value;
+            const desc = document.getElementById('expDesc').value;
+            const car = document.getElementById('expCar').value;
+            const amount = parseFloat(document.getElementById('expAmount').value);
+
+            if (!date || !category || isNaN(amount)) {
+                alert("Ju lutem plotësoni të gjitha fushat e detyrueshme!");
+                return;
+            }
+
+            expenses.push({ date, category, desc, car, amount });
+
+            // Clear inputs
+            document.getElementById('expDesc').value = '';
+            document.getElementById('expCar').value = '';
+            document.getElementById('expAmount').value = '';
+
+            renderTables();
+        }
+
+        function removeIncome(index) {
+            incomes.splice(index, 1);
+            renderTables();
+        }
+
+        function removeExpense(index) {
+            expenses.splice(index, 1);
+            renderTables();
+        }
+
+        // --- PDF GENERATION LOGIC ---
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Colors
+            const primaryColor = [20, 20, 20]; // Black/Dark Grey
+            const headerBg = [240, 240, 240]; // Light Grey
+
+            // 1. Header Info
+            const monthYear = document.getElementById('reportDate').value;
+
+            // Title
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("MRentals", 105, 20, null, null, "center");
+
+            doc.setFontSize(14);
+            doc.text("Raport Mujor – Menaxhim i të Ardhurave dhe Shpenzimeve", 105, 30, null, null, "center");
+
+            // Meta Data
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Muaji / Viti: ${monthYear}`, 14, 45);
+
+            let currentY = 55;
+
+            // 3. INCOME TABLE
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.text("Të Ardhurat", 14, currentY);
+            currentY += 5;
+
+            const incomeRows = incomes.map(i => [
+                i.date, i.car, i.period, i.amount.toFixed(2)
+            ]);
+            // Calculate Income Total
+            const totalInc = incomes.reduce((sum, item) => sum + item.amount, 0);
+
+            doc.autoTable({
+                startY: currentY,
+                head: [['Data', 'Makina', 'Periudha', 'Shuma (€)']],
+                body: incomeRows,
+                theme: 'grid',
+                headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+                styles: { fontSize: 9, cellPadding: 3 },
+                columnStyles: { 3: { halign: 'right' } }
+            });
+
+            // Ensure currentY is updated
+            currentY = doc.lastAutoTable ? (doc.lastAutoTable.finalY + 15) : (currentY + 20);
+
+            // 4. EXPENSES TABLE
+            doc.text("Shpenzimet", 14, currentY);
+            currentY += 5;
+
+            const expenseRows = expenses.map(e => [
+                e.date, e.category, e.desc, e.car, e.amount.toFixed(2)
+            ]);
+            // Calculate Expense Total
+            const totalExp = expenses.reduce((sum, item) => sum + item.amount, 0);
+
+            doc.autoTable({
+                startY: currentY,
+                head: [['Data', 'Kategoria', 'Përshkrimi', 'Makina', 'Shuma (€)']],
+                body: expenseRows,
+                theme: 'grid',
+                headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+                styles: { fontSize: 9, cellPadding: 3 },
+                columnStyles: { 4: { halign: 'right' } }
+            });
+
+            // Ensure currentY is updated
+            currentY = doc.lastAutoTable ? (doc.lastAutoTable.finalY + 15) : (currentY + 20);
+
+            // 5. SUMMARY TABLE (Bottom Right)
+            doc.text("Përmbledhje Financiare", 14, currentY);
+            currentY += 5;
+
+            const netProfit = totalInc - totalExp;
+
+            // Manual Margin Calculation to avoid 'auto' errors
+            // A4 Page width is roughly 210mm
+            const pageWidth = doc.internal.pageSize.width || 210;
+            // Reduce width slightly to 140mm (100+40) to be safe
+            const col0Width = 100;
+            const col1Width = 40;
+            const tableWidth = col0Width + col1Width;
+            const rightMargin = 14;
+            const leftMargin = pageWidth - tableWidth - rightMargin;
+
+            doc.autoTable({
+                startY: currentY,
+                body: [
+                    ['Totali i të Ardhurave (€)', totalInc.toFixed(2)],
+                    ['Totali i Shpenzimeve (€)', totalExp.toFixed(2)],
+                    ['Fitimi Neto (€)', netProfit.toFixed(2)]
+                ],
+                theme: 'grid',
+                styles: {
+                    halign: 'right',
+                    fontSize: 10,
+                    cellPadding: 2
+                },
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: col0Width },
+                    1: { cellWidth: col1Width }
+                },
+                // Use explicit calculated left and right margins
+                margin: { left: leftMargin, right: rightMargin },
+
+                // Highlight Net Profit row
+                didParseCell: function (data) {
+                    if (data.row.index === 2) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [0, 0, 0];
+                    }
+                }
+            });
+
+            currentY = doc.lastAutoTable.finalY + 30;
+
+            // 6. Signature
+            doc.setLineWidth(0.5);
+            doc.line(14, currentY, 80, currentY);
+            doc.setFontSize(10);
+            doc.text("Nënshkrimi i Përgjegjësit", 14, currentY + 5);
+
+            // Save
+            doc.save(`Raport_${monthYear.replace(/\s/g, '_')}.pdf`);
+        }
+
+        // Add some dummy data for demonstration
+        incomes.push({ date: "2026-01-02", car: "Golf 6", period: "3 Dite", amount: 120 });
+        incomes.push({ date: "2026-01-05", car: "Volvo XC90", period: "1 Jave", amount: 500 });
+
+        expenses.push({ date: "2026-01-03", category: "Servis", desc: "Nderrim Vaji", car: "Golf 6", amount: 60 });
+
+        renderTables();
+
+    </script>
+</body>
+
+</html>
