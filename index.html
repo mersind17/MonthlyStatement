@@ -22,6 +22,20 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 
@@ -35,7 +49,11 @@
                     <i class="fa-solid fa-car-side text-2xl mr-3"></i>
                     <span class="font-bold text-xl tracking-tight">MRentals Manager</span>
                 </div>
-                <div class="text-sm opacity-80">Gjenerues i Raporteve Mujore</div>
+                <div class="flex items-center space-x-4">
+                    <span id="saveStatus"
+                        class="text-xs uppercase font-bold text-blue-200 transition-colors duration-300"></span>
+                    <div class="text-sm opacity-80">Gjenerues i Raporteve Mujore</div>
+                </div>
             </div>
         </div>
     </nav>
@@ -49,7 +67,7 @@
             <div class="grid grid-cols-1 gap-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-600 mb-1">Muaji & Viti</label>
-                    <input type="text" id="reportDate"
+                    <input type="text" id="reportDate" onchange="window.triggerSave()"
                         class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         placeholder="p.sh. Janar 2026" value="Janar 2026">
                 </div>
@@ -70,15 +88,13 @@
 
                     <!-- Income Form -->
                     <div class="grid grid-cols-2 gap-3 mb-4 bg-gray-50 p-4 rounded-lg">
-                        <input type="date" id="incDate" title="Data e të Ardhurave"
+                        <input type="date" id="incDate" placeholder="Data" class="p-2 border rounded text-sm w-full">
+                        <input type="text" id="incCar" placeholder="Makina" class="p-2 border rounded text-sm w-full">
+                        <input type="text" id="incPeriod" placeholder="Periudha (psh 3 Dite)"
                             class="p-2 border rounded text-sm w-full">
-                        <input type="text" id="incCar" placeholder="Makina" title="Makina"
+                        <input type="number" id="incAmount" placeholder="Shuma (€)"
                             class="p-2 border rounded text-sm w-full">
-                        <input type="text" id="incPeriod" placeholder="Periudha (psh 3 Dite)" title="Periudha e qiraje"
-                            class="p-2 border rounded text-sm w-full">
-                        <input type="number" id="incAmount" placeholder="Shuma (€)" title="Shuma në euro"
-                            class="p-2 border rounded text-sm w-full">
-                        <button onclick="addIncome()"
+                        <button onclick="window.addIncome()"
                             class="col-span-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition">
                             <i class="fa-solid fa-plus mr-1"></i> Shto të Ardhura
                         </button>
@@ -119,23 +135,21 @@
 
                     <!-- Expense Form -->
                     <div class="grid grid-cols-2 gap-3 mb-4 bg-gray-50 p-4 rounded-lg">
-                        <input type="date" id="expDate" title="Data e shpenzimit"
-                            class="p-2 border rounded text-sm w-full">
-                        <select id="expCategory" title="Kategoria e shpenzimit"
-                            class="p-2 border rounded text-sm w-full">
+                        <input type="date" id="expDate" placeholder="Data" class="p-2 border rounded text-sm w-full">
+                        <select id="expCategory" class="p-2 border rounded text-sm w-full"
+                            title="Kategoria e Shpenzimit">
                             <option value="Servis">Servis</option>
                             <option value="Karburant">Karburant</option>
                             <option value="Larje">Larje</option>
                             <option value="Pjesë">Pjesë Këmbimi</option>
                             <option value="Tjetër">Tjetër</option>
                         </select>
-                        <input type="text" id="expDesc" placeholder="Përshkrimi" title="Përshkrimi i shpenzimit"
+                        <input type="text" id="expDesc" placeholder="Përshkrimi"
                             class="p-2 border rounded text-sm w-full">
-                        <input type="text" id="expCar" placeholder="Makina" title="Makina"
-                            class="p-2 border rounded text-sm w-full">
-                        <input type="number" id="expAmount" placeholder="Shuma (€)" title="Shuma në euro"
+                        <input type="text" id="expCar" placeholder="Makina" class="p-2 border rounded text-sm w-full">
+                        <input type="number" id="expAmount" placeholder="Shuma (€)"
                             class="p-2 border rounded text-sm w-full col-span-2">
-                        <button onclick="addExpense()"
+                        <button onclick="window.addExpense()"
                             class="col-span-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition">
                             <i class="fa-solid fa-plus mr-1"></i> Shto Shpenzim
                         </button>
@@ -173,7 +187,7 @@
                 <h4 class="text-2xl font-bold">Fitimi Neto: <span id="netProfitDisplay">0.00 €</span></h4>
                 <p class="text-blue-200 text-sm">Llogaritur automatikisht (Të Ardhurat - Shpenzimet)</p>
             </div>
-            <button onclick="generatePDF()"
+            <button onclick="window.generatePDF()"
                 class="bg-white text-blue-900 hover:bg-blue-50 font-bold py-3 px-8 rounded-lg shadow-md transition transform hover:scale-105 flex items-center">
                 <i class="fa-solid fa-file-pdf mr-2 text-xl"></i> Shkarko Raportin PDF
             </button>
@@ -185,19 +199,148 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
-    <script>
-        // --- DATA STORAGE ---
+    <!-- FIREBASE & APP LOGIC -->
+    <script type="module">
+        // Import Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- GLOBAL STATE ---
         let incomes = [];
         let expenses = [];
+        let db = null;
+        let auth = null;
+        let user = null;
+        let appId = 'default-app-id';
 
-        // Initialize with default date
-        setTimeout(() => {
-            document.getElementById('incDate').valueAsDate = new Date();
-            document.getElementById('expDate').valueAsDate = new Date();
-        }, 100);
+        // --- INIT FIREBASE ---
+        async function initFirebase() {
+            try {
+                // Check if running in the specific environment with injected config
+                if (typeof __firebase_config !== 'undefined') {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // --- FUNCTIONS ---
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    // Auth Logic
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    // Auth Listener
+                    onAuthStateChanged(auth, (u) => {
+                        user = u;
+                        if (user) {
+                            console.log("User logged in:", user.uid);
+                            setupDataListener();
+                        }
+                    });
+                } else {
+                    console.warn("Firebase config not found. Falling back to LocalStorage.");
+                    loadFromLocalStorage();
+                }
+            } catch (error) {
+                console.error("Firebase Init Error:", error);
+                console.warn("Falling back to LocalStorage.");
+                loadFromLocalStorage();
+            }
+        }
+
+        // --- FIRESTORE / STORAGE LOGIC ---
+
+        function getDocRef() {
+            if (!db || !user) return null;
+            // Path: artifacts/{appId}/users/{userId}/data/draft
+            return doc(db, 'artifacts', appId, 'users', user.uid, 'data', 'draft');
+        }
+
+        function setupDataListener() {
+            const docRef = getDocRef();
+            if (!docRef) return;
+
+            updateSaveStatus("Duke sinkronizuar...", "text-yellow-400");
+
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    incomes = data.incomes || [];
+                    expenses = data.expenses || [];
+                    if (data.reportDate) document.getElementById('reportDate').value = data.reportDate;
+
+                    updateSaveStatus("Të dhënat u ngarkuan", "text-green-400");
+                    renderTables();
+                } else {
+                    updateSaveStatus("Gati për të ruajtur", "text-blue-200");
+                }
+            }, (error) => {
+                console.error("Error fetching data:", error);
+                updateSaveStatus("Gabim në sinkronizim", "text-red-400");
+            });
+        }
+
+        async function saveToCloud() {
+            if (!db || !user) {
+                saveToLocalStorage(); // Fallback
+                return;
+            }
+
+            updateSaveStatus("Duke ruajtur...", "text-yellow-400");
+
+            const docRef = getDocRef();
+            const dataToSave = {
+                incomes: incomes,
+                expenses: expenses,
+                reportDate: document.getElementById('reportDate').value,
+                lastUpdated: new Date().toISOString()
+            };
+
+            try {
+                await setDoc(docRef, dataToSave);
+                updateSaveStatus("U ruajt në Cloud", "text-green-400");
+                setTimeout(() => updateSaveStatus("", ""), 3000);
+            } catch (e) {
+                console.error("Save Error:", e);
+                updateSaveStatus("Gabim gjatë ruajtjes", "text-red-400");
+            }
+        }
+
+        function updateSaveStatus(msg, colorClass) {
+            const el = document.getElementById('saveStatus');
+            el.innerText = msg;
+            el.className = `text-xs uppercase font-bold transition-colors duration-300 ${colorClass}`;
+        }
+
+        // --- LOCALSTORAGE FALLBACK ---
+        function saveToLocalStorage() {
+            const data = {
+                incomes,
+                expenses,
+                reportDate: document.getElementById('reportDate').value
+            };
+            localStorage.setItem('mrentals_data', JSON.stringify(data));
+            updateSaveStatus("U ruajt (Local)", "text-green-400");
+            setTimeout(() => updateSaveStatus("", ""), 3000);
+        }
+
+        function loadFromLocalStorage() {
+            const dataStr = localStorage.getItem('mrentals_data');
+            if (dataStr) {
+                const data = JSON.parse(dataStr);
+                incomes = data.incomes || [];
+                expenses = data.expenses || [];
+                if (data.reportDate) document.getElementById('reportDate').value = data.reportDate;
+                renderTables();
+                updateSaveStatus("U ngarkua (Local)", "text-green-400");
+            }
+        }
+
+        // --- APP LOGIC ---
 
         function formatMoney(amount) {
             return parseFloat(amount).toFixed(2) + ' €';
@@ -214,7 +357,6 @@
             const netDisplay = document.getElementById('netProfitDisplay');
             netDisplay.innerText = formatMoney(net);
 
-            // Visual feedback for positive/negative profit
             if (net >= 0) {
                 netDisplay.classList.remove('text-red-300');
                 netDisplay.classList.add('text-green-300');
@@ -230,13 +372,13 @@
             incBody.innerHTML = '';
             incomes.forEach((inc, index) => {
                 const row = `
-                    <tr class="bg-white border-b hover:bg-gray-50">
+                    <tr class="bg-white border-b hover:bg-gray-50 fade-in">
                         <td class="px-2 py-2">${inc.date}</td>
                         <td class="px-2 py-2">${inc.car}</td>
                         <td class="px-2 py-2">${inc.period}</td>
                         <td class="px-2 py-2 text-right font-bold text-green-600">${inc.amount}</td>
                         <td class="px-2 py-2 text-right">
-                            <button onclick="removeIncome(${index})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                            <button onclick="window.removeIncome(${index})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
@@ -248,13 +390,13 @@
             expBody.innerHTML = '';
             expenses.forEach((exp, index) => {
                 const row = `
-                    <tr class="bg-white border-b hover:bg-gray-50">
+                    <tr class="bg-white border-b hover:bg-gray-50 fade-in">
                         <td class="px-2 py-2">${exp.date}</td>
                         <td class="px-2 py-2 font-medium text-gray-900">${exp.category}</td>
                         <td class="px-2 py-2">${exp.car}</td>
                         <td class="px-2 py-2 text-right font-bold text-red-600">${exp.amount}</td>
                         <td class="px-2 py-2 text-right">
-                            <button onclick="removeExpense(${index})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                            <button onclick="window.removeExpense(${index})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
@@ -264,7 +406,13 @@
             updateTotals();
         }
 
-        function addIncome() {
+        // --- EXPORTED FUNCTIONS (Attached to Window) ---
+
+        window.triggerSave = function () {
+            saveToCloud();
+        };
+
+        window.addIncome = function () {
             const date = document.getElementById('incDate').value;
             const car = document.getElementById('incCar').value;
             const period = document.getElementById('incPeriod').value;
@@ -283,9 +431,10 @@
             document.getElementById('incPeriod').value = '';
 
             renderTables();
-        }
+            saveToCloud();
+        };
 
-        function addExpense() {
+        window.addExpense = function () {
             const date = document.getElementById('expDate').value;
             const category = document.getElementById('expCategory').value;
             const desc = document.getElementById('expDesc').value;
@@ -305,28 +454,30 @@
             document.getElementById('expAmount').value = '';
 
             renderTables();
-        }
+            saveToCloud();
+        };
 
-        function removeIncome(index) {
-            incomes.splice(index, 1);
-            renderTables();
-        }
+        window.removeIncome = function (index) {
+            if (confirm('A jeni i sigurt?')) {
+                incomes.splice(index, 1);
+                renderTables();
+                saveToCloud();
+            }
+        };
 
-        function removeExpense(index) {
-            expenses.splice(index, 1);
-            renderTables();
-        }
+        window.removeExpense = function (index) {
+            if (confirm('A jeni i sigurt?')) {
+                expenses.splice(index, 1);
+                renderTables();
+                saveToCloud();
+            }
+        };
 
-        // --- PDF GENERATION LOGIC ---
-        function generatePDF() {
+        // --- PDF GENERATION LOGIC (Same as before) ---
+        window.generatePDF = function () {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
-            // Colors
-            const primaryColor = [20, 20, 20]; // Black/Dark Grey
-            const headerBg = [240, 240, 240]; // Light Grey
-
-            // 1. Header Info
             const monthYear = document.getElementById('reportDate').value;
 
             // Title
@@ -353,7 +504,6 @@
             const incomeRows = incomes.map(i => [
                 i.date, i.car, i.period, i.amount.toFixed(2)
             ]);
-            // Calculate Income Total
             const totalInc = incomes.reduce((sum, item) => sum + item.amount, 0);
 
             doc.autoTable({
@@ -366,7 +516,6 @@
                 columnStyles: { 3: { halign: 'right' } }
             });
 
-            // Ensure currentY is updated
             currentY = doc.lastAutoTable ? (doc.lastAutoTable.finalY + 15) : (currentY + 20);
 
             // 4. EXPENSES TABLE
@@ -376,7 +525,6 @@
             const expenseRows = expenses.map(e => [
                 e.date, e.category, e.desc, e.car, e.amount.toFixed(2)
             ]);
-            // Calculate Expense Total
             const totalExp = expenses.reduce((sum, item) => sum + item.amount, 0);
 
             doc.autoTable({
@@ -389,19 +537,14 @@
                 columnStyles: { 4: { halign: 'right' } }
             });
 
-            // Ensure currentY is updated
             currentY = doc.lastAutoTable ? (doc.lastAutoTable.finalY + 15) : (currentY + 20);
 
-            // 5. SUMMARY TABLE (Bottom Right)
+            // 5. SUMMARY TABLE
             doc.text("Përmbledhje Financiare", 14, currentY);
             currentY += 5;
 
             const netProfit = totalInc - totalExp;
-
-            // Manual Margin Calculation to avoid 'auto' errors
-            // A4 Page width is roughly 210mm
             const pageWidth = doc.internal.pageSize.width || 210;
-            // Reduce width slightly to 140mm (100+40) to be safe
             const col0Width = 100;
             const col1Width = 40;
             const tableWidth = col0Width + col1Width;
@@ -425,10 +568,7 @@
                     0: { fontStyle: 'bold', cellWidth: col0Width },
                     1: { cellWidth: col1Width }
                 },
-                // Use explicit calculated left and right margins
                 margin: { left: leftMargin, right: rightMargin },
-
-                // Highlight Net Profit row
                 didParseCell: function (data) {
                     if (data.row.index === 2) {
                         data.cell.styles.fontStyle = 'bold';
@@ -445,17 +585,13 @@
             doc.setFontSize(10);
             doc.text("Nënshkrimi i Përgjegjësit", 14, currentY + 5);
 
-            // Save
             doc.save(`Raport_${monthYear.replace(/\s/g, '_')}.pdf`);
-        }
+        };
 
-        // Add some dummy data for demonstration
-        incomes.push({ date: "2026-01-02", car: "Golf 6", period: "3 Dite", amount: 120 });
-        incomes.push({ date: "2026-01-05", car: "Volvo XC90", period: "1 Jave", amount: 500 });
-
-        expenses.push({ date: "2026-01-03", category: "Servis", desc: "Nderrim Vaji", car: "Golf 6", amount: 60 });
-
-        renderTables();
+        // Initialize Defaults
+        document.getElementById('incDate').valueAsDate = new Date();
+        document.getElementById('expDate').valueAsDate = new Date();
+        initFirebase();
 
     </script>
 </body>
